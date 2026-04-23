@@ -8003,7 +8003,7 @@ function Library:CreateWindow(WindowInfo)
             Active = false,
             ZIndex = 9000,
             Visible = true,
-            Parent = MainFrame,
+            Parent = ScreenGui,
         })
         TweenService:Create(DialogOverlay, Library.TweenInfo, {
             BackgroundTransparency = 0.5,
