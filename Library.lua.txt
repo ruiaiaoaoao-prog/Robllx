@@ -449,11 +449,10 @@ function Builders.Dropdown(panel, label, options, opts, sg, win)
     local cardH = 42
     local clip, animShow, animHide = animatedWrap(panel, cardH, disabled)
 
-    local container = newFrame({ Size=UDim2.new(1,0,0,cardH), BackgroundColor3=Color3.fromRGB(255,255,255), Parent=clip })
+    -- Dark surface bg, no outline
+    local container = newFrame({ Size=UDim2.new(1,0,0,cardH), BackgroundColor3=Color3.fromRGB(28,28,32), Parent=clip })
     corner(container, 10); addGradient(container, T.GRAD_SURFACE, 90); addRipple(container)
-
-    local cStroke = Instance.new("UIStroke"); cStroke.Color=T.BORDER; cStroke.Thickness=1
-    cStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; cStroke.Parent=container
+    -- NO UIStroke on container (removed white/gray outline)
 
     local headerLbl = Instance.new("TextLabel"); headerLbl.Size=UDim2.new(0.5,-10,1,0); headerLbl.Position=UDim2.new(0,12,0,0)
     headerLbl.BackgroundTransparency=1; headerLbl.Text=label; headerLbl.TextColor3=T.TEXT
@@ -511,13 +510,15 @@ function Builders.Dropdown(panel, label, options, opts, sg, win)
         selLbl.Text = getDisplayText()
     end
 
+    local trackConnection = nil
+
     local function closeDropdown()
-        expanded=false
+        expanded = false
+        if trackConnection then trackConnection:Disconnect(); trackConnection = nil end
         local wx  = win.AbsolutePosition.X + win.AbsoluteSize.X
         local curY = floatPanel.Position.Y.Offset
-        tw(floatPanel, {Position=UDim2.new(0,wx,0,curY)}, 0.18, Enum.EasingStyle.Quint)
-        task.delay(0.19, function() floatPanel.Visible=false end)
-        tw(cStroke, {Color=T.BORDER}, 0.15)
+        tw(floatPanel, {Position=UDim2.new(0, wx, 0, curY)}, 0.18, Enum.EasingStyle.Quint)
+        task.delay(0.19, function() floatPanel.Visible = false end)
     end
 
     for i, opt in ipairs(options) do
@@ -563,14 +564,21 @@ function Builders.Dropdown(panel, label, options, opts, sg, win)
     end
 
     local function openDropdown()
-        expanded=true
-        local winPos  = win.AbsolutePosition
-        local winSize = win.AbsoluteSize
-        local cardY   = container.AbsolutePosition.Y
-        local edgeX   = winPos.X + winSize.X
-        floatPanel.Position=UDim2.new(0,edgeX,0,cardY); floatPanel.Visible=true
-        tw(floatPanel, {Position=UDim2.new(0,edgeX+6,0,cardY)}, 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        tw(cStroke, {Color=Color3.fromRGB(55,55,62)}, 0.15)
+        expanded = true
+        local edgeX = win.AbsolutePosition.X + win.AbsoluteSize.X
+        local cardY = container.AbsolutePosition.Y
+        floatPanel.Position = UDim2.new(0, edgeX, 0, cardY)
+        floatPanel.Visible  = true
+        tw(floatPanel, {Position = UDim2.new(0, edgeX + 6, 0, cardY)}, 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+        -- Track GUI drag: keep float panel glued to the window while open
+        if trackConnection then trackConnection:Disconnect() end
+        trackConnection = RunService.RenderStepped:Connect(function()
+            if not expanded then return end
+            local tx = win.AbsolutePosition.X + win.AbsoluteSize.X + 6
+            local ty = container.AbsolutePosition.Y
+            floatPanel.Position = UDim2.new(0, tx, 0, ty)
+        end)
     end
 
     local headerHit = Instance.new("TextButton"); headerHit.Size=UDim2.new(1,0,1,0); headerHit.BackgroundTransparency=1
